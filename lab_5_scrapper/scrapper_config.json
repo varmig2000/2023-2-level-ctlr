@@ -1,9 +1,14 @@
 {
-    "seed_urls": [],
-    "headers": {},
-    "total_articles_to_find_and_parse": 0,
-    "encoding": "",
-    "timeout": 0,
+    "seed_urls": ["https://gorvesti.ru/feed"],
+    "headers": {"Cookie": "stg_traffic_source_priority=2; stg_externalReferrer=https://yandex.ru/; stg_last_interaction=Mon%2C%2008%20Apr%202024%2011:19:45%20GMT; stg_returning_visitor=Mon%2C%2008%20Apr%202024%2011:19:45%20GMT",
+                "Accept-Language": "ru,en;q=0.9",
+                "Referer": "https://www.supermonitoring.com/mini-tools/browse/",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 YaBrowser/24.1.0.0 Safari/537.36"
+                },
+    "total_articles_to_find_and_parse": 5,
+    "encoding": "utf-8",
+    "timeout": 2,
     "should_verify_certificate": true,
     "headless_mode": true
 }

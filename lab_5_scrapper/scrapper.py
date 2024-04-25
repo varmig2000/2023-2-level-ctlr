@@ -224,6 +224,7 @@ class Crawler:
         """
         self.config = config
         self.urls = []
+        self.url_pattern = 'https://gorvesti.ru/feed'
 
     def _extract_url(self, article_bs: BeautifulSoup) -> str:
         """
@@ -235,11 +236,32 @@ class Crawler:
         Returns:
             str: Url from HTML
         """
+        links = article_bs.find(name='div', class_='feed feed-items')
+
+        for link in links.find_all('a'):
+            if link.get('href').endswith('html'):
+                url = self.url_pattern + link.get('href')
+                if url not in self.urls:
+                    self.urls.append(url)
+                    return url
 
     def find_articles(self) -> None:
         """
         Find articles.
         """
+        seed_urls = self.get_search_urls()
+
+        for seed_url in seed_urls:
+            response = make_request(seed_url, self.config)
+            if not response.ok:
+                continue
+
+            soup = BeautifulSoup(response.text, features='html.parser')
+            new_url = self._extract_url(soup)
+
+            while new_url:
+                self.urls.append(new_url)
+                new_url = self._extract_url(soup)
 
     def get_search_urls(self) -> list:
         """
@@ -248,6 +270,7 @@ class Crawler:
         Returns:
             list: seed_urls param
         """
+        return self.config.get_seed_urls()
 
 
 # 10
@@ -268,6 +291,10 @@ class HTMLParser:
             article_id (int): Article id
             config (Config): Configuration
         """
+        self.full_url = full_url
+        self.article_id = article_id
+        self.config = config
+        self.article = Article(self.full_url, self.article_id)
 
     def _fill_article_with_text(self, article_soup: BeautifulSoup) -> None:
         """
@@ -276,6 +303,15 @@ class HTMLParser:
         Args:
             article_soup (bs4.BeautifulSoup): BeautifulSoup instance
         """
+        my_div = article_soup.find(name='article', class_='item block')
+
+        all_ps = my_div.find_all('p')
+
+        texts = []
+        for p in all_ps:
+            texts.append(p.text)
+
+        self.article.text = ''.join(texts)
 
     def _fill_article_with_meta_information(self, article_soup: BeautifulSoup) -> None:
         """
@@ -303,6 +339,14 @@ class HTMLParser:
         Returns:
             Union[Article, bool, list]: Article instance
         """
+        response = make_request(self.full_url, self.config)
+
+        if response.ok:
+            article_bs = BeautifulSoup(response.text, features='html.parser')
+            self._fill_article_with_text(article_bs)
+            self._fill_article_with_meta_information(article_bs)
+
+        return self.article
 
 
 def prepare_environment(base_path: Union[pathlib.Path, str]) -> None:
@@ -312,12 +356,10 @@ def prepare_environment(base_path: Union[pathlib.Path, str]) -> None:
     Args:
         base_path (Union[pathlib.Path, str]): Path where articles stores
     """
-    assets_path = base_path / "ASSETS_PATH"
-
-    if not assets_path.exists():
-        assets_path.mkdir(parents=True, exist_ok=True)
+    if not base_path.exists():
+        base_path.mkdir(parents=True, exist_ok=True)
     else:
-        for file in assets_path.iterdir():
+        for file in base_path.iterdir():
             file.unlink()
 
 
