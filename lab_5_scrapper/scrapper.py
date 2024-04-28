@@ -11,6 +11,8 @@ import requests
 from bs4 import BeautifulSoup
 import datetime
 from core_utils.article.article import Article
+from core_utils.constants import CRAWLER_CONFIG_PATH, ASSETS_PATH
+from core_utils.article.io import to_raw, to_meta
 
 
 class IncorrectSeedURLError(Exception):
@@ -250,18 +252,24 @@ class Crawler:
         Find articles.
         """
         seed_urls = self.get_search_urls()
+        nec_len = self.config.get_num_articles()
 
-        for seed_url in seed_urls:
-            response = make_request(seed_url, self.config)
-            if not response.ok:
-                continue
+        while len(self.urls) < nec_len:
 
-            soup = BeautifulSoup(response.text, features='html.parser')
-            new_url = self._extract_url(soup)
+            for seed_url in seed_urls:
+                response = make_request(seed_url, self.config)
+                if not response.ok:
+                    continue
 
-            while new_url:
-                self.urls.append(new_url)
+                soup = BeautifulSoup(response.text, features='html.parser')
+
                 new_url = self._extract_url(soup)
+                if len(self.urls) >= nec_len:
+                    break
+                self.urls.append(new_url)
+
+                if len(self.urls) >= nec_len:
+                    break
 
     def get_search_urls(self) -> list:
         """
@@ -320,6 +328,17 @@ class HTMLParser:
         Args:
             article_soup (bs4.BeautifulSoup): BeautifulSoup instance
         """
+        title = article_soup.find(name='h1', itemprop="headline")
+        if title:
+            self.article.title = title.text
+
+        authors = article_soup.find(name='div', class_='item-field item-ath')
+        for author in authors:
+            article_soup.find("#text")
+            if author:
+                self.article.author.append(author.text)
+            else:
+                self.article.author.append('NOT FOUND')
 
     def unify_date_format(self, date_str: str) -> datetime.datetime:
         """
@@ -367,6 +386,17 @@ def main() -> None:
     """
     Entrypoint for scrapper module.
     """
+    config = Config(path_to_config=CRAWLER_CONFIG_PATH)
+    prepare_environment(base_path=ASSETS_PATH)
+
+    crawler = Crawler(config=config)
+    crawler.find_articles()
+    urls = crawler.urls
+    for index, url in enumerate(urls):
+        html_parser = HTMLParser(full_url=url, article_id=index+1, config=config)
+        article = html_parser.parse()
+        to_raw(article)
+        to_meta(article)
 
 
 if __name__ == "__main__":
