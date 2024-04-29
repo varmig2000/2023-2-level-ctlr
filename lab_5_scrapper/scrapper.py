@@ -6,14 +6,16 @@ import json
 # pylint: disable=too-many-arguments, too-many-instance-attributes, unused-import, undefined-variable
 import pathlib
 import re
+import shutil
 from typing import Pattern, Union
+
 import requests
 from bs4 import BeautifulSoup
+
 from core_utils.article.article import Article
 from core_utils.article.io import to_meta, to_raw
 from core_utils.config_dto import ConfigDTO
 from core_utils.constants import ASSETS_PATH, CRAWLER_CONFIG_PATH
-import shutil
 
 
 class IncorrectSeedURLError(Exception):
