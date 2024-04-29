@@ -6,7 +6,6 @@ import json
 # pylint: disable=too-many-arguments, too-many-instance-attributes, unused-import, undefined-variable
 import pathlib
 import re
-import shutil
 from typing import Pattern, Union
 
 import requests
