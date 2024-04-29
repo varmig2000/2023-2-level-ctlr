@@ -7,14 +7,13 @@ import json
 import pathlib
 import re
 from typing import Pattern, Union
-
 import requests
 from bs4 import BeautifulSoup
-
 from core_utils.article.article import Article
 from core_utils.article.io import to_meta, to_raw
 from core_utils.config_dto import ConfigDTO
 from core_utils.constants import ASSETS_PATH, CRAWLER_CONFIG_PATH
+import shutil
 
 
 class IncorrectSeedURLError(Exception):
@@ -378,11 +377,8 @@ def prepare_environment(base_path: Union[pathlib.Path, str]) -> None:
         base_path (Union[pathlib.Path, str]): Path where articles stores
     """
     if not base_path.exists():
-        base_path.mkdir(parents=True, exist_ok=True)
-    else:
-        for file in base_path.iterdir():
-            file.unlink()
-
+        base_path.mkdir(parents=True)
+    shutil.rmtree(base_path)
 
 def main() -> None:
     """
