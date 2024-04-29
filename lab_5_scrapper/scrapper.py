@@ -335,12 +335,16 @@ class HTMLParser:
             self.article.title = title.text
 
         authors = article_soup.find(name='div', class_='item-field item-ath')
-        for author in authors:
-            article_soup.find("#text")
-            if author:
-                self.article.author.append(author.text)
-            else:
-                self.article.author.append('NOT FOUND')
+
+        if authors is not None:
+            for author in authors:
+                author_text = author.text.strip()
+                if author_text:
+                    self.article.author.append(author_text)
+                else:
+                    self.article.author.append('NOT FOUND')
+        else:
+            self.article.author.append('NOT FOUND')
 
     def unify_date_format(self, date_str: str) -> datetime.datetime:
         """
