@@ -380,8 +380,10 @@ def prepare_environment(base_path: Union[pathlib.Path, str]) -> None:
         base_path (Union[pathlib.Path, str]): Path where articles stores
     """
     if not base_path.exists():
-        base_path.mkdir(parents=True)
-    shutil.rmtree(base_path)
+        base_path.mkdir(parents=True, exist_ok=True)
+    else:
+        for file in base_path.iterdir():
+            file.unlink()
 
 def main() -> None:
     """
