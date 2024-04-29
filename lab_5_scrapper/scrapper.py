@@ -343,6 +343,7 @@ class HTMLParser:
             else:
                 self.article.author.append('NOT FOUND')
 
+
     def unify_date_format(self, date_str: str) -> datetime.datetime:
         """
         Unify date format.
