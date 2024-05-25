@@ -10,12 +10,13 @@ except ImportError:  # pragma: no cover
     DiGraph = None  # type: ignore
     print('No libraries installed. Failed to import.')
 
-from core_utils.article.article import (Article, ArtifactType, get_article_id_from_filepath)
+import spacy_udpipe
+
+from core_utils.article.article import Article, ArtifactType, get_article_id_from_filepath
+from core_utils.article.io import from_raw, to_cleaned
+from core_utils.constants import ASSETS_PATH, UDPIPE_MODEL_PATH
 from core_utils.pipeline import (AbstractCoNLLUAnalyzer, CoNLLUDocument, LibraryWrapper,
                                  PipelineProtocol, StanzaDocument, TreeNode)
-from core_utils.article.io import from_raw, to_cleaned
-import spacy_udpipe
-from core_utils.constants import ASSETS_PATH, UDPIPE_MODEL_PATH
 
 
 class InconsistentDatasetError(Exception):
@@ -163,6 +164,7 @@ class UDPipeAnalyzer(LibraryWrapper):
             config={"conversion_maps": {"XPOS": {"": "_"}}, "include_headers": True},
         )
         return model
+
 
     def analyze(self, texts: list[str]) -> list[StanzaDocument | str]:
         """
