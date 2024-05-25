@@ -10,10 +10,12 @@ except ImportError:  # pragma: no cover
     DiGraph = None  # type: ignore
     print('No libraries installed. Failed to import.')
 
-from core_utils.article.article import (Article, get_article_id_from_filepath)
+from core_utils.article.article import (Article, ArtifactType, get_article_id_from_filepath)
 from core_utils.pipeline import (AbstractCoNLLUAnalyzer, CoNLLUDocument, LibraryWrapper,
                                  PipelineProtocol, StanzaDocument, TreeNode)
 from core_utils.article.io import from_raw, to_cleaned
+import spacy_udpipe
+from core_utils.constants import ASSETS_PATH, UDPIPE_MODEL_PATH
 
 
 class InconsistentDatasetError(Exception):
@@ -112,14 +114,23 @@ class TextProcessingPipeline(PipelineProtocol):
             analyzer (LibraryWrapper | None): Analyzer instance
         """
         self._corpus = corpus_manager
+        self.analyzer = analyzer
 
     def run(self) -> None:
         """
         Perform basic preprocessing and write processed text to files.
         """
         articles = self._corpus.get_articles().values()
-        for article in articles:
+
+        docs = []
+        if self.analyzer:
+            docs = self.analyzer.analyze([article.text for article in articles])
+
+        for i, article in enumerate(articles):
             to_cleaned(article)
+            if self.analyzer and docs:
+                article.set_conllu_info(docs[i])
+                self.analyzer.to_conllu(article)
 
 
 class UDPipeAnalyzer(LibraryWrapper):
@@ -133,6 +144,7 @@ class UDPipeAnalyzer(LibraryWrapper):
         """
         Initialize an instance of the UDPipeAnalyzer class.
         """
+        self._analyzer = self._bootstrap()
 
     def _bootstrap(self) -> AbstractCoNLLUAnalyzer:
         """
@@ -141,6 +153,16 @@ class UDPipeAnalyzer(LibraryWrapper):
         Returns:
             AbstractCoNLLUAnalyzer: Analyzer instance
         """
+        model = spacy_udpipe.load_from_path(
+            lang="ru",
+            path=str(UDPIPE_MODEL_PATH)
+        )
+        model.add_pipe(
+            "conll_formatter",
+            last=True,
+            config={"conversion_maps": {"XPOS": {"": "_"}}, "include_headers": True},
+        )
+        return model
 
     def analyze(self, texts: list[str]) -> list[StanzaDocument | str]:
         """
@@ -152,6 +174,7 @@ class UDPipeAnalyzer(LibraryWrapper):
         Returns:
             list[StanzaDocument | str]: List of documents
         """
+        return [f'{self._analyzer(text)._.conll_str}\n' for text in texts]
 
     def to_conllu(self, article: Article) -> None:
         """
@@ -160,6 +183,9 @@ class UDPipeAnalyzer(LibraryWrapper):
         Args:
             article (Article): Article containing information to save
         """
+        with open(file=article.get_file_path(kind=ArtifactType.UDPIPE_CONLLU),
+                  mode='w', encoding='utf-8') as file:
+            file.write(article.get_conllu_info())
 
 
 class StanzaAnalyzer(LibraryWrapper):
@@ -306,6 +332,10 @@ def main() -> None:
     """
     Entrypoint for pipeline module.
     """
+    corpus_manager = CorpusManager(path_to_raw_txt_data=ASSETS_PATH)
+    udpipe_analyzer = UDPipeAnalyzer()
+    pipeline = TextProcessingPipeline(corpus_manager, udpipe_analyzer)
+    pipeline.run()
 
 
 if __name__ == "__main__":
